@@ -16,13 +16,16 @@ contract ChainScoreClient is ChainlinkClient, ConfirmedOwner {
     );
 
     mapping(string => uint256) public scores;
+    mapping(string => uint256) public supply_scores;
+    mapping(string => uint256) public value_scores;
+    mapping(string => uint256) public repayment_scores;
+    mapping(string => uint256) public debt_scores;
 
     constructor(address scoreToken, address oracle) ConfirmedOwner(msg.sender) {
         setChainlinkToken(scoreToken);
         setChainlinkOracle(oracle);
     }
 
-    /** ============================= */
     /** ============================= */
 
     function requestScore(string memory _address, string memory _jobId)
@@ -42,8 +45,6 @@ contract ChainScoreClient is ChainlinkClient, ConfirmedOwner {
 
         req.add("get", url);
         req.add("address", _address);
-
-        req.add("path", "score");
         req.addInt("times", 10**18);
 
         requestOracleData(req, ORACLE_PAYMENT);
@@ -52,16 +53,22 @@ contract ChainScoreClient is ChainlinkClient, ConfirmedOwner {
     function fulfillScore(
         bytes32 requestId,
         uint256 score,
+        uint256 supply_score,
+        uint256 value_score,
+        uint256 repayment_score,
+        uint256 debt_score,
         string memory account
     ) public recordChainlinkFulfillment(requestId) {
         emit ScoreRequestFulfilled(requestId, score, account);
 
         scores[account] = score;
+        supply_scores[account] = supply_score;
+        value_scores[account] = value_score;
+        repayment_scores[account] = repayment_score;
+        debt_scores[account] = debt_score;
     }
 
     /** ============================= */
-    /** ============================= */
-
 
     function updateOracle(address _newOracle) external onlyOwner {
         setChainlinkOracle(_newOracle);
