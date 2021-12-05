@@ -12,22 +12,18 @@ contract ChainScoreClient is ChainlinkClient, ConfirmedOwner {
     event ScoreRequestFulfilled(
         bytes32 indexed requestId,
         uint256 indexed score,
-        address indexed user
+        string indexed user
     );
 
-    address _score = 0x64B60e8C3b8527011B48aD9a19265680FE901CEE;
-    address _oracle = 0x3b5544731199d09c5a3686fd87599eDAeA4678B8;
+    mapping(string => uint256) public scores;
 
-    constructor() ConfirmedOwner(msg.sender) {
-        setChainlinkToken(_score);
-        setChainlinkOracle(_oracle);
+    constructor(address scoreToken, address oracle) ConfirmedOwner(msg.sender) {
+        setChainlinkToken(scoreToken);
+        setChainlinkOracle(oracle);
     }
 
     /** ============================= */
     /** ============================= */
-
-    mapping(address => uint256) public scores;
-    address[] public logs;
 
     function requestScore(string memory _address, string memory _jobId)
         public
@@ -48,7 +44,7 @@ contract ChainScoreClient is ChainlinkClient, ConfirmedOwner {
         req.add("address", _address);
 
         req.add("path", "score");
-        req.addInt("times", 100);
+        req.addInt("times", 10**18);
 
         requestOracleData(req, ORACLE_PAYMENT);
     }
@@ -56,18 +52,26 @@ contract ChainScoreClient is ChainlinkClient, ConfirmedOwner {
     function fulfillScore(
         bytes32 requestId,
         uint256 score,
-        address account
+        string memory account
     ) public recordChainlinkFulfillment(requestId) {
         emit ScoreRequestFulfilled(requestId, score, account);
 
-        // logs.push(account);
         scores[account] = score;
     }
 
     /** ============================= */
     /** ============================= */
 
-    function withdrawLink() public onlyOwner {
+
+    function updateOracle(address _newOracle) external onlyOwner {
+        setChainlinkOracle(_newOracle);
+    }
+
+    function updateScoreToken(address _newToken) external onlyOwner {
+        setChainlinkToken(_newToken);
+    }
+
+    function withdrawScore() public onlyOwner {
         LinkTokenInterface link = LinkTokenInterface(chainlinkTokenAddress());
         require(
             link.transfer(msg.sender, link.balanceOf(address(this))),

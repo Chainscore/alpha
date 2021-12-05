@@ -1,5 +1,5 @@
-const Migrations = artifacts.require("Migrations");
+const Client = artifacts.require("ChainScoreClient");
 
 module.exports = function (deployer) {
-  deployer.deploy(Migrations);
+  deployer.deploy(Client);
 };
