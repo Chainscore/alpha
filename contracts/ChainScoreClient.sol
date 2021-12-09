@@ -12,14 +12,18 @@ contract ChainScoreClient is ChainlinkClient, ConfirmedOwner {
     event ScoreRequestFulfilled(
         bytes32 indexed requestId,
         uint256 indexed score,
-        string indexed user
+        uint256 supply_score,
+        uint256 value_score,
+        uint256 repayment_score,
+        uint256 debt_score,
+        address indexed user
     );
 
-    mapping(string => uint256) public scores;
-    mapping(string => uint256) public supply_scores;
-    mapping(string => uint256) public value_scores;
-    mapping(string => uint256) public repayment_scores;
-    mapping(string => uint256) public debt_scores;
+    mapping(address => uint256) public scores;
+    mapping(address => uint256) public supply_scores;
+    mapping(address => uint256) public value_scores;
+    mapping(address => uint256) public repayment_scores;
+    mapping(address => uint256) public debt_scores;
 
     constructor(address scoreToken, address oracle) ConfirmedOwner(msg.sender) {
         setChainlinkToken(scoreToken);
@@ -27,25 +31,18 @@ contract ChainScoreClient is ChainlinkClient, ConfirmedOwner {
     }
 
     /** ============================= */
+    /** ============================= */
 
-    function requestScore(string memory _address, string memory _jobId)
+    function requestScore(address _address, bytes32 _jobSpec)
         public
-        onlyOwner
     {
         Chainlink.Request memory req = buildChainlinkRequest(
-            stringToBytes32(_jobId),
+            _jobSpec,
             address(this),
             this.fulfillScore.selector
         );
-        bytes memory str = abi.encodePacked(
-            "http://169.60.167.178:3001/score/",
-            _address
-        );
-        string memory url = string(str);
-
-        req.add("get", url);
-        req.add("address", _address);
-        req.addInt("times", 10**18);
+        
+        req.add("address", toAsciiString(_address));
 
         requestOracleData(req, ORACLE_PAYMENT);
     }
@@ -57,9 +54,17 @@ contract ChainScoreClient is ChainlinkClient, ConfirmedOwner {
         uint256 value_score,
         uint256 repayment_score,
         uint256 debt_score,
-        string memory account
+        address account
     ) public recordChainlinkFulfillment(requestId) {
-        emit ScoreRequestFulfilled(requestId, score, account);
+
+        emit ScoreRequestFulfilled(
+            requestId, 
+            score, 
+            supply_score, 
+            value_score, 
+            repayment_score, 
+            debt_score, 
+            account);
 
         scores[account] = score;
         supply_scores[account] = supply_score;
@@ -69,6 +74,8 @@ contract ChainScoreClient is ChainlinkClient, ConfirmedOwner {
     }
 
     /** ============================= */
+    /** ============================= */
+
 
     function updateOracle(address _newOracle) external onlyOwner {
         setChainlinkOracle(_newOracle);
@@ -101,7 +108,7 @@ contract ChainScoreClient is ChainlinkClient, ConfirmedOwner {
     }
 
     function stringToBytes32(string memory source)
-        private
+        public
         pure
         returns (bytes32 result)
     {
@@ -114,5 +121,22 @@ contract ChainScoreClient is ChainlinkClient, ConfirmedOwner {
             // solhint-disable-line no-inline-assembly
             result := mload(add(source, 32))
         }
+    }
+
+    function toAsciiString(address x) internal pure returns (string memory) {
+        bytes memory s = new bytes(40);
+        for (uint i = 0; i < 20; i++) {
+            bytes1 b = bytes1(uint8(uint(uint160(x)) / (2**(8*(19 - i)))));
+            bytes1 hi = bytes1(uint8(b) / 16);
+            bytes1 lo = bytes1(uint8(b) - 16 * uint8(hi));
+            s[2*i] = char(hi);
+            s[2*i+1] = char(lo);            
+        }
+        return string(s);
+    }
+
+    function char(bytes1 b) internal pure returns (bytes1 c) {
+        if (uint8(b) < 10) return bytes1(uint8(b) + 0x30);
+        else return bytes1(uint8(b) + 0x57);
     }
 }
