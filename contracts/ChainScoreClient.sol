@@ -3,12 +3,10 @@ pragma solidity ^0.8.7;
 
 import "@chainlink/contracts/src/v0.8/ChainlinkClient.sol";
 import "@chainlink/contracts/src/v0.8/ConfirmedOwner.sol";
-import "@openzeppelin/contracts/access/AccessControl.sol";
 
-contract ChainScoreClient is ChainlinkClient, ConfirmedOwner, AccessControl {
+contract ChainScoreClient is ChainlinkClient, ConfirmedOwner {
     using Chainlink for Chainlink.Request;
 
-    bytes32 constant public WHITELISTED_USER = keccak256("WHITELISTED_USER");
     uint256 private constant ORACLE_PAYMENT = 1 * LINK_DIVISIBILITY;
 
     event ScoreRequestFulfilled(
@@ -30,7 +28,6 @@ contract ChainScoreClient is ChainlinkClient, ConfirmedOwner, AccessControl {
     constructor(address scoreToken, address oracle) ConfirmedOwner(msg.sender) {
         setChainlinkToken(scoreToken);
         setChainlinkOracle(oracle);
-        grantRole(WHITELISTED_USER, msg.sender);
     }
 
     /** ============================= */
@@ -78,17 +75,6 @@ contract ChainScoreClient is ChainlinkClient, ConfirmedOwner, AccessControl {
 
     /** ============================= */
     /** ============================= */
-
-
-    function whitelistUser(address user) public onlyOwner {
-        grantRole(WHITELISTED_USER, user);
-    }
-
-    function whitelistUsers(address[] memory users) external onlyOwner {
-        for(uint i = 0; i<users.length; i++){
-            whitelistUser(users[i]);
-        }
-    }
 
     function updateOracle(address _newOracle) external onlyOwner {
         setChainlinkOracle(_newOracle);
