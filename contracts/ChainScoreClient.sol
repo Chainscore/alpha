@@ -9,6 +9,14 @@ contract ChainScoreClient is ChainlinkClient, ConfirmedOwner {
 
     uint256 private constant ORACLE_PAYMENT = 1 * LINK_DIVISIBILITY;
 
+    struct Score {
+        uint score;
+        uint supply;
+        uint value;
+        uint debt;
+        uint repayment;
+    }
+
     event ScoreRequestFulfilled(
         bytes32 indexed requestId,
         uint256 indexed score,
@@ -19,31 +27,28 @@ contract ChainScoreClient is ChainlinkClient, ConfirmedOwner {
         address indexed user
     );
 
-    mapping(address => uint256) public scores;
-    mapping(address => uint256) public supply_scores;
-    mapping(address => uint256) public value_scores;
-    mapping(address => uint256) public repayment_scores;
-    mapping(address => uint256) public debt_scores;
+    mapping(address => Score) public scores;
 
-    constructor(address scoreToken, address oracle) ConfirmedOwner(msg.sender) {
+    bytes32 public jobSpec;
+
+    constructor(address scoreToken, address oracle, bytes32 _jobSpec) ConfirmedOwner(msg.sender) {
         setChainlinkToken(scoreToken);
         setChainlinkOracle(oracle);
+        jobSpec = _jobSpec;
     }
 
     /** ============================= */
     /** ============================= */
 
-    function requestScore(address _address, bytes32 _jobSpec)
+    function requestScore(address _address)
         public
     {
         Chainlink.Request memory req = buildChainlinkRequest(
-            _jobSpec,
+            jobSpec,
             address(this),
             this.fulfillScore.selector
         );
-        
         req.add("address", toAsciiString(_address));
-
         requestOracleData(req, ORACLE_PAYMENT);
     }
 
@@ -66,11 +71,11 @@ contract ChainScoreClient is ChainlinkClient, ConfirmedOwner {
             debt_score, 
             account);
 
-        scores[account] = score;
-        supply_scores[account] = supply_score;
-        value_scores[account] = value_score;
-        repayment_scores[account] = repayment_score;
-        debt_scores[account] = debt_score;
+        Score storage _score = scores[account];
+        _score.supply = supply_score;
+        _score.value = value_score;
+        _score.repayment = repayment_score;
+        _score.debt = debt_score;
     }
 
     /** ============================= */
@@ -80,8 +85,8 @@ contract ChainScoreClient is ChainlinkClient, ConfirmedOwner {
         setChainlinkOracle(_newOracle);
     }
 
-    function updateScoreToken(address _newToken) external onlyOwner {
-        setChainlinkToken(_newToken);
+    function updateJobSpec(bytes32 _newJobSpec) external onlyOwner {
+        jobSpec = _newJobSpec;
     }
 
     function withdrawScore() public onlyOwner {
