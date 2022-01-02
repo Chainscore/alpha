@@ -49,7 +49,7 @@ contract ChainScoreClient is ChainlinkClient, ConfirmedOwner {
             this.fulfillScore.selector
         );
         req.add("address", toAsciiString(_address));
-        requestOracleData(req, ORACLE_PAYMENT);
+        sendChainlinkRequest(req, ORACLE_PAYMENT);
     }
 
     function fulfillScore(
@@ -72,6 +72,7 @@ contract ChainScoreClient is ChainlinkClient, ConfirmedOwner {
             account);
 
         Score storage _score = scores[account];
+        _score.score = score;
         _score.supply = supply_score;
         _score.value = value_score;
         _score.repayment = repayment_score;

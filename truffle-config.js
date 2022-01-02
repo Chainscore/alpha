@@ -54,14 +54,14 @@
      },
  
      rinkeby: {
-       provider: () => new HDWalletProvider(mnemonic, `https://rinkeby.infura.io/v3/${process.env.INFURA}`),
+       provider: () => new HDWalletProvider(mnemonic, `wss://rinkeby.infura.io/ws/v3/${process.env.INFURA}`),
        network_id: 4,
        timeoutBlocks: 200,  // # of blocks before a deployment times out  (minimum/default: 50)
        skipDryRun: true     // Skip dry run before migrations? (default: false for public nets )
      },
  
      ht: {
-       provider: () => new HDWalletProvider(mnemonic, `https://api.s0.pops.one/`),
+       provider: () => new HDWalletProvider(mnemonic, `wss://ws.s0.pops.one/`),
        network_id: 1666700000,       // Testnet's id
      },
  
